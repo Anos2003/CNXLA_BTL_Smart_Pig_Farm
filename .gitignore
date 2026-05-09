@@ -1,0 +1,12 @@
+# Bỏ qua môi trường ảo (Rất nặng và chứa hàng ngàn file rác)
+venv/
+
+# Bỏ qua các file cache của Python
+__pycache__/
+
+# Bỏ qua file chứa mã bí mật (Bắt buộc)
+.env
+
+# Bỏ qua thư mục xuất dữ liệu và file Excel cục bộ
+outputs/
+*.xlsx
