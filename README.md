@@ -131,6 +131,8 @@ Dự án được phát triển trong khuôn khổ môn học Công nghệ Xử 
 
 **Sinh viên thực hiện**: 
 - Trịnh Hữu Hiệu ([Anos2003](https://github.com/Anos2003))
+
+
 **Giảng viên hướng dẫn**: Thầy Lê Trung Hiếu - Khoa Công nghệ Thông tin - Đại học Đại Nam
 
 ---
