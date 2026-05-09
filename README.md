@@ -111,6 +111,33 @@ git clone https://github.com/Anos2003/CNXLA_BTL_Smart_Pig_Farm.git
 # Di chuyển vào thư mục dự án
 cd CNXLA_BTL_Smart_Pig_Farm
 
+
+## 9. Đóng góp
+
+<a href="https://github.com/Anos2003/CNXLA_BTL_Smart_Pig_Farm/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Anos2003/CNXLA_BTL_Smart_Pig_Farm" />
+</a>
+
+---
+
+## 10. Phát triển
+
+Dự án được phát triển trong khuôn khổ môn học Công nghệ Xử lý Ảnh.
+
+**Sinh viên thực hiện**: 
+- Trịnh Hữu Hiệu ([Anos2003](https://github.com/Anos2003))
+*(Bổ sung thêm tên các thành viên khác trong nhóm nếu có)*
+
+**Giảng viên hướng dẫn**: Thầy Trần Đăng Công - Khoa Công nghệ Thông tin - Đại học Đại Nam
+
+---
+
+## 11. Giấy phép
+
+Dự án này sử dụng giấy phép **MIT License**. Bạn có quyền tự do sử dụng, sao chép,Dưới đây là bản README đã được viết lại hoàn toàn dựa trên khung mẫu của bạn, được tinh chỉnh nội dung để làm nổi bật sự chuyên nghiệp và tính thực tiễn của dự án Smart Pig Farm. 
+
+Bạn chỉ cần copy toàn bộ đoạn mã Markdown dưới đây và dán vào file `README.md` trên GitHub của mình:
+```markdown
 # Cài đặt thư viện
 pip install -r requirements.txt
 
