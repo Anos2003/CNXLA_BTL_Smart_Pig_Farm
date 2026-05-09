@@ -137,16 +137,13 @@ Dự án được phát triển trong khuôn khổ môn học Công nghệ Xử 
 
 ---
 
+
 ## 11. Giấy phép
 
-Dự án này sử dụng giấy phép **MIT License**. Bạn có quyền tự do sử dụng, sao chép,Dưới đây là bản README đã được viết lại hoàn toàn dựa trên khung mẫu của bạn, được tinh chỉnh nội dung để làm nổi bật sự chuyên nghiệp và tính thực tiễn của dự án Smart Pig Farm. 
+Dự án này được phát hành theo giấy phép MIT License.  
+Bạn được phép sử dụng, chỉnh sửa và phân phối lại mã nguồn cho mục đích học tập hoặc phát triển cá nhân.
 
-Bạn chỉ cần copy toàn bộ đoạn mã Markdown dưới đây và dán vào file `README.md` trên GitHub của mình:
-```markdown
-# Cài đặt thư viện
+## Cài đặt thư viện
+
+```bash
 pip install -r requirements.txt
-
-# Tạo file .env và cấu hình Telegram API (Xem hướng dẫn trong file .env.example)
-# Bật Terminal và chạy Dashboard
-streamlit run dashboard.py
-
