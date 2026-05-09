@@ -4,12 +4,12 @@ import time
 import os
 import pandas as pd
 import math
-import requests
 from ultralytics import YOLO
-from dotenv import load_dotenv # Đã thêm thư viện đọc file .env
 
-# Kích hoạt đọc biến môi trường từ file .env
-load_dotenv() 
+# Import các module đã được tách nhỏ (Micro-Architecture)
+from telegram_api import send_alert
+from excel_logger import log_to_excel, FILE_PATH
+from hardware_iot import control_relay
 
 # ==========================================
 # 1. CSS INJECTION - BIẾN HÌNH UI/UX
@@ -29,24 +29,7 @@ st.set_page_config(page_title="VIGILANT OPS - AGRI", page_icon="🛰️", layout
 inject_custom_css()
 
 # ==========================================
-# 2. HÀM GỬI THÔNG BÁO TELEGRAM
-# ==========================================
-def send_telegram_alert(token, chat_id, message):
-    if not token or not chat_id:
-        return False
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
-    try:
-        response = requests.post(url, json=payload, timeout=2) 
-        if response.status_code != 200:
-            print(f"Lỗi API: {response.json()}")
-        return response.status_code == 200
-    except Exception as e:
-        print(f"Lỗi gửi Telegram: {e}")
-        return False
-
-# ==========================================
-# 3. OPENCV HUD DRAWING
+# 2. OPENCV HUD DRAWING
 # ==========================================
 def draw_hud_box(img, x1, y1, x2, y2, color, thickness=2, line_len=20):
     cv2.line(img, (x1, y1), (x1 + line_len, y1), color, thickness)
@@ -66,12 +49,9 @@ def draw_hud_box(img, x1, y1, x2, y2, color, thickness=2, line_len=20):
 # KHỞI TẠO STATE & CẤU HÌNH CHUNG
 # ==========================================
 LOG_INTERVAL = 5 
-EXCEL_FILE = "outputs/nhat_ky_chuong_lon.xlsx"
 
 if 'is_running' not in st.session_state: st.session_state.is_running = False
 if 'chart_data' not in st.session_state: st.session_state.chart_data = pd.DataFrame(columns=["Time", "Temp", "Gas"])
-
-# BỘ NHỚ TRẠNG THÁI THIẾT BỊ THỰC TẾ (STATE MACHINE)
 if 'actual_heater' not in st.session_state: st.session_state.actual_heater = False
 if 'actual_fan' not in st.session_state: st.session_state.actual_fan = False
 
@@ -100,18 +80,12 @@ with st.sidebar:
     if col_stop.button("🛑 STANDBY", width="stretch"): st.session_state.is_running = False
 
     st.markdown("---")
-    st.markdown("### 📱 KẾT NỐI TELEGRAM")
-    # Đã cấu hình lấy dữ liệu từ file ẩn .env, nếu không có sẽ tự động để trống ("")
-    tele_token = st.text_input("Bot Token", value=os.getenv("TELEGRAM_TOKEN", ""), type="password")
-    tele_chat_id = st.text_input("Chat ID", value=os.getenv("TELEGRAM_CHAT_ID", "")) 
-    tele_cooldown = st.number_input("Khoảng cách gửi tin (giây)", value=60, step=10)
-
-    st.markdown("---")
     st.markdown("### ⚙️ CẤU HÌNH NGƯỠNG IOT")
     temp_min_threshold = st.number_input("Ngưỡng bật Sưởi (Nhiệt độ < °C)", value=20.0, step=0.5)
     temp_max_threshold = st.number_input("Ngưỡng bật Quạt (Nhiệt độ > °C)", value=40.0, step=0.5) 
     gas_max_threshold = st.number_input("Ngưỡng bật Quạt (Khí Gas > ppm)", value=300.0, step=10.0)
     alert_sleeping_limit = st.number_input("Báo động khi lợn tụ tập > (con)", value=5, step=1)
+    tele_cooldown = st.number_input("Khoảng cách gửi tin (giây)", value=60, step=10)
 
     st.markdown("---")
     st.markdown("### 🕹️ ĐIỀU KHIỂN THỦ CÔNG")
@@ -141,13 +115,11 @@ col_ind1, col_ind2, col_ind3 = st.columns(3)
 ui_heater = col_ind1.empty()
 ui_fan = col_ind2.empty()
 
-# Hiển thị mặc định khi chưa chạy
 if not st.session_state.is_running:
     ui_heater.info("⚪ SƯỞI: ĐANG TẮT (Standby)")
     ui_fan.info("⚪ QUẠT: ĐANG TẮT (Standby)")
 
 st.markdown("---")
-
 tab_monitor, tab_setup = st.tabs(["👁️‍🗨️ LIVE FEED", "📐 CALIBRATION (CĂN CHỈNH)"])
 
 with tab_setup:
@@ -192,8 +164,8 @@ with tab_monitor:
         excel_frame = st.empty()
 
     if not os.path.exists("outputs"): os.makedirs("outputs")
-    if os.path.exists(EXCEL_FILE) and not st.session_state.is_running:
-        excel_frame.dataframe(pd.read_excel(EXCEL_FILE).tail(3), width="stretch")
+    if os.path.exists(FILE_PATH) and not st.session_state.is_running:
+        excel_frame.dataframe(pd.read_excel(FILE_PATH).tail(3), width="stretch")
 
     # ==========================================
     # CORE PIPELINE
@@ -213,11 +185,6 @@ with tab_monitor:
         track_history = {} 
         MOVEMENT_THRESHOLD = 60 
         HISTORY_FRAMES = 30     
-
-        if os.path.exists(EXCEL_FILE):
-            current_df = pd.read_excel(EXCEL_FILE)
-        else:
-            current_df = pd.DataFrame(columns=["Thời gian", "Ngủ", "Ăn", "Di chuyển", "Nhiệt độ", "Khí Gas", "Trạng thái"])
 
         while cap.isOpened() and st.session_state.is_running:
             ret, frame = cap.read()
@@ -262,8 +229,6 @@ with tab_monitor:
                     box_height = y2 - y1
 
                     if box_height < 120: continue
-                    
-                    head_y = y1 + box_height // 3  
                     current_class = 0 
                     
                     is_eating = False
@@ -305,16 +270,12 @@ with tab_monitor:
             m_temp.metric("🌡️ TEMP", f"{mock_temp}°C")
             m_gas.metric("☁️ GAS", f"{mock_gas} PPM")
 
-            # ==========================================================
-            # STATE MACHINE: XỬ LÝ LOGIC BẬT/TẮT CÓ "TRÍ NHỚ"
-            # ==========================================================
             if curr_time - last_log > 1.0:
                 t_str = time.strftime("%H:%M:%S")
                 new_pt = pd.DataFrame([{"Time": t_str, "Temp": mock_temp, "Gas": mock_gas}])
                 st.session_state.chart_data = pd.concat([st.session_state.chart_data, new_pt]).tail(20)
                 chart_frame.line_chart(st.session_state.chart_data.set_index("Time"), color=["#5ffbd6", "#ffb4ab"])
                 
-                # 1. TÍNH TOÁN TRẠNG THÁI MỤC TIÊU (Dựa trên môi trường & thao tác)
                 target_heater = False
                 target_fan = False
                 reason_heater = ""
@@ -339,39 +300,35 @@ with tab_monitor:
                     target_fan = True
                     reason_fan = f"Tự động (Nhiệt độ quá cao {mock_temp}°C)"
 
-                # Cập nhật UI Hiển thị Trạng thái thiết bị
                 if target_heater: ui_heater.error("🔥 SƯỞI: ĐANG BẬT")
                 else: ui_heater.info("⚪ SƯỞI: ĐANG TẮT")
-                
                 if target_fan: ui_fan.warning("🌀 QUẠT: ĐANG BẬT")
                 else: ui_fan.info("⚪ QUẠT: ĐANG TẮT")
 
-                # 2. KIỂM TRA SỰ THAY ĐỔI (SO VỚI GIÂY TRƯỚC ĐÓ) ĐỂ GỬI TELEGRAM
+                # ==========================================================
+                # KIỂM TRA SỰ THAY ĐỔI & GỌI MODULE PHẦN CỨNG + TELEGRAM
+                # ==========================================================
                 changes_msg = []
                 
-                # Kiểm tra thay đổi SƯỞI
                 if target_heater and not st.session_state.actual_heater:
+                    control_relay("HEATER", True) 
                     changes_msg.append(f"🟢 BẬT ĐÈN SƯỞI\nLý do: {reason_heater}")
                 elif not target_heater and st.session_state.actual_heater:
-                    if not manual_heater:
-                        changes_msg.append("🔴 TẮT ĐÈN SƯỞI\nLý do: Đã đủ ấm, ngắt lệnh tự động.")
-                    else:
-                        changes_msg.append("🔴 TẮT ĐÈN SƯỞI\nLý do: Lệnh TẮT thủ công.")
+                    control_relay("HEATER", False) 
+                    if not manual_heater: changes_msg.append("🔴 TẮT ĐÈN SƯỞI\nLý do: Đã đủ ấm.")
+                    else: changes_msg.append("🔴 TẮT ĐÈN SƯỞI\nLý do: Lệnh TẮT thủ công.")
 
-                # Kiểm tra thay đổi QUẠT
                 if target_fan and not st.session_state.actual_fan:
+                    control_relay("FAN", True) 
                     changes_msg.append(f"🟢 BẬT QUẠT HÚT\nLý do: {reason_fan}")
                 elif not target_fan and st.session_state.actual_fan:
-                    if not manual_fan:
-                        changes_msg.append("🔴 TẮT QUẠT HÚT\nLý do: Môi trường bình thường, ngắt lệnh tự động.")
-                    else:
-                        changes_msg.append("🔴 TẮT QUẠT HÚT\nLý do: Lệnh TẮT thủ công.")
+                    control_relay("FAN", False) 
+                    if not manual_fan: changes_msg.append("🔴 TẮT QUẠT HÚT\nLý do: Môi trường an toàn.")
+                    else: changes_msg.append("🔴 TẮT QUẠT HÚT\nLý do: Lệnh TẮT thủ công.")
 
-                # Lưu lại trạng thái hiện tại vào Bộ nhớ
                 st.session_state.actual_heater = target_heater
                 st.session_state.actual_fan = target_fan
 
-                # 3. GỬI TIN NHẮN VÀ GHI LOG
                 sys_status = "Bình thường"
                 if target_heater or target_fan:
                     active = []
@@ -380,32 +337,21 @@ with tab_monitor:
                     sys_status = f"Hệ thống đang kích hoạt: {' & '.join(active)}"
                     log_frame.warning(f"[{t_str}] SYS: {sys_status}")
                 else:
-                    log_frame.success(f"[{t_str}] SYS_OP: NOMINAL (Bình thường)")
+                    log_frame.success(f"[{t_str}] SYS_OP: NOMINAL")
 
                 if len(changes_msg) > 0:
                     alert_msg = "🔄 *CẬP NHẬT TRẠNG THÁI THIẾT BỊ*\n➖➖➖➖➖➖➖➖➖➖\n"
-                    for msg in changes_msg:
-                        alert_msg += f"- {msg}\n"
+                    for msg in changes_msg: alert_msg += f"- {msg}\n"
                     alert_msg += f"\n⏰ *Thời gian:* {t_str}"
                     
-                    success = send_telegram_alert(tele_token, tele_chat_id, alert_msg)
+                    # Gọi hàm từ module telegram_api.py
+                    success = send_alert(alert_msg) 
                     if success: st.toast('Đã cập nhật trạng thái qua Telegram!', icon='📨')
 
-                # Ghi Excel định kỳ
+                # Gọi hàm từ module excel_logger.py
                 if curr_time - last_log > LOG_INTERVAL:
-                    if not os.path.exists("outputs"): os.makedirs("outputs")
-                    new_row = {"Thời gian": t_str, "Ngủ": c_s, "Ăn": c_e, "Di chuyển": c_m, 
-                               "Nhiệt độ": mock_temp, "Khí Gas": mock_gas, "Trạng thái": sys_status}
-                    
-                    if os.path.exists(EXCEL_FILE):
-                        df_log = pd.read_excel(EXCEL_FILE)
-                    else:
-                        df_log = pd.DataFrame(columns=["Thời gian", "Ngủ", "Ăn", "Di chuyển", "Nhiệt độ", "Khí Gas", "Trạng thái"])
-                        
-                    df_log = pd.concat([df_log, pd.DataFrame([new_row])], ignore_index=True)
-                    df_log.to_excel(EXCEL_FILE, index=False)
+                    df_log = log_to_excel(t_str, c_s, c_e, c_m, mock_temp, mock_gas, sys_status)
                     excel_frame.dataframe(df_log.tail(3), width="stretch")
-                    
-                last_log = curr_time
+                    last_log = curr_time
 
         cap.release()

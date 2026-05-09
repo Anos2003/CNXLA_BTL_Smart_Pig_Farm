@@ -4,4 +4,5 @@ requests
 pandas
 openpyxl
 streamlit
-pyserial
+python-dotenv
+pyserial>=3.5
