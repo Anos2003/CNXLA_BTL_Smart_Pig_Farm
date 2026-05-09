@@ -143,7 +143,3 @@ Dự án được phát triển trong khuôn khổ môn học Công nghệ Xử 
 Dự án này được phát hành theo giấy phép MIT License.  
 Bạn được phép sử dụng, chỉnh sửa và phân phối lại mã nguồn cho mục đích học tập hoặc phát triển cá nhân.
 
-## Cài đặt thư viện
-
-```bash
-pip install -r requirements.txt
