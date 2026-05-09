@@ -104,13 +104,14 @@ CNXLA_BTL_Smart_Pig_Farm/
 
 ## 8. Cài Đặt và Khởi chạy
 
-```bash
+
 # Clone project
 git clone https://github.com/Anos2003/CNXLA_BTL_Smart_Pig_Farm.git
 
 # Di chuyển vào thư mục dự án
 cd CNXLA_BTL_Smart_Pig_Farm
 
+---
 
 ## 9. Đóng góp
 
